@@ -37,11 +37,19 @@
         @keyframes typing { from { width: 0 } to { width: 100% } }
         @keyframes blink-caret { from, to { border-color: transparent } 50% { border-color: #f97316; } }
 
-        /* 拖曳動畫 - 文法填空 */
+        /* 拖曳/點擊動畫 - 文法填空 */
         .drop-zone { min-height: 3.5rem; border: 3px dashed #a78bfa; transition: all 0.2s; }
         .drag-item { cursor: grab; transition: transform 0.2s, box-shadow 0.2s; }
         .drag-item.correct-animation { animation: bounce-in 0.8s ease-out; }
         .drag-item.incorrect-animation { animation: shake 0.5s; }
+        
+        /* 點擊模式下的選取狀態 */
+        .drag-item.selected {
+            border: 4px solid #f97316;
+            box-shadow: 0 0 10px #f97316;
+            transform: scale(1.05);
+        }
+
         @keyframes bounce-in { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.1); } }
         @keyframes shake { 0%, 100% { transform: translateX(0); } 20%, 60% { transform: translateX(-6px); } 40%, 80% { transform: translateX(6px); } }
     </style>
@@ -138,6 +146,11 @@
             <div id="sentence-structure" class="text-3xl font-bold text-gray-800 flex flex-wrap items-center space-x-2 md:space-x-4">
                 <!-- 句子結構會在這裡動態載入 -->
             </div>
+        </div>
+        
+        <!-- 新增：點擊模式提示 -->
+        <div class="mb-4 text-center text-sm text-gray-500">
+            ✅ **行動裝置模式：** 請先點擊下方的選項，再點擊上方的空格進行填空。
         </div>
 
         <!-- 拖曳選項區 (Drag Items) -->
@@ -347,7 +360,8 @@
 
     // 文法填空狀態
     let currentGrammarIndex = 0;
-    let dragData = {};
+    let dragData = {}; // 用於標準拖曳
+    let selectedGrammarItem = null; // 用於點擊替換模式
 
     // 元素參考 (Spelling)
     const flashcardStaticEl = document.getElementById('flashcard-static'); 
@@ -423,9 +437,10 @@
             spellingScore = 0;
             startSpellingQuiz();
         } else if (mode === 'grammar') {
-            // 隨機排列並開始文法填空
+            // 重置文法狀態並開始挑戰
             grammarData.sort(() => 0.5 - Math.random());
             currentGrammarIndex = 0;
+            selectedGrammarItem = null;
             startGrammarChallenge();
         }
     }
@@ -610,6 +625,24 @@
         return '其他';
     }
 
+    // 新增：顯示除錯訊息
+    function showGrammarDebug(text) {
+        // 使用黃色背景的訊息框進行除錯回饋，並短暫顯示
+        const debugEl = document.getElementById('grammar-message-text');
+        const boxEl = document.getElementById('grammar-message-box');
+        
+        boxEl.classList.remove('hidden');
+        boxEl.className = 'mt-8 p-4 text-center rounded-xl transition duration-500 bg-yellow-100 text-yellow-700 shadow-xl';
+        debugEl.textContent = `[偵錯中] ${text}`;
+
+        setTimeout(() => {
+            // 只有在還未顯示正式結果時才隱藏
+            if (boxEl.classList.contains('bg-yellow-100')) { 
+                boxEl.classList.add('hidden');
+            }
+        }, 1500);
+    }
+
 
     function startGrammarChallenge() {
         if (currentGrammarIndex >= grammarData.length) {
@@ -623,6 +656,9 @@
         structureEl.innerHTML = '';
         grammarOptionsEl.innerHTML = '';
         grammarHintArea.classList.add('hidden');
+        
+        // 清除選擇狀態
+        selectedGrammarItem = null;
 
         // 隨機組合選項
         const requiredOptions = [
@@ -641,9 +677,15 @@
             if (part.includes('【')) {
                 span.className = 'drop-zone bg-white rounded-xl shadow-inner flex items-center justify-center p-2 min-w-[6rem] min-h-[3.5rem] border-2 border-dashed border-indigo-400 hover:border-indigo-600 transition-all text-xl md:text-2xl';
                 span.dataset.targetType = part.replace(/[【】]/g, ''); 
+                
+                // *** 綁定點擊事件用於手機模式 ***
+                span.addEventListener('click', handleDropZoneClick);
+
+                // 標準拖曳事件 (用於電腦滑鼠)
                 span.addEventListener('dragover', allowDrop);
                 span.addEventListener('dragleave', handleDragLeave);
                 span.addEventListener('drop', handleDrop);
+                
                 span.textContent = part;
             } else {
                 span.className = 'text-2xl md:text-3xl font-bold text-indigo-700 py-2';
@@ -666,11 +708,91 @@
         item.textContent = `${option.icon} ${option.text}`;
         item.dataset.key = option.key;
         item.dataset.type = option.type;
+        
+        // 標準拖曳事件 (用於電腦滑鼠)
         item.addEventListener('dragstart', handleDragStart);
+        
+        // *** 綁定點擊事件用於手機模式 ***
+        item.addEventListener('click', handleItemClick);
+
         return item;
     }
 
+    // --- 點擊模式邏輯 ---
+    function handleItemClick(e) {
+        const clickedItem = e.currentTarget;
+        
+        // 移除所有選項的選取狀態
+        document.querySelectorAll('.drag-item').forEach(item => {
+            item.classList.remove('selected');
+        });
+        
+        // 如果點擊的是已經選取的項目，則取消選取
+        if (selectedGrammarItem && selectedGrammarItem.element === clickedItem) {
+            selectedGrammarItem = null;
+            showGrammarDebug(`選項『${clickedItem.dataset.key}』已取消選取。`);
+        } else {
+            // 否則，選取它
+            clickedItem.classList.add('selected');
+            selectedGrammarItem = {
+                key: clickedItem.dataset.key,
+                type: clickedItem.dataset.type,
+                element: clickedItem
+            };
+            showGrammarDebug(`選項『${clickedItem.dataset.key}』已選取。請點擊空格。`);
+        }
+    }
+
+    function handleDropZoneClick(e) {
+        const dropZone = e.currentTarget;
+
+        if (selectedGrammarItem) {
+            // 1. 如果空格內已有項目，將其歸還到選項區
+            const existingItem = dropZone.querySelector('.drag-item');
+            if (existingItem) {
+                existingItem.classList.remove('opacity-50', 'correct-animation', 'incorrect-animation', 'selected');
+                grammarOptionsEl.appendChild(existingItem);
+            }
+            
+            // 2. 移除選項區的選取狀態
+            selectedGrammarItem.element.classList.remove('selected');
+            
+            // 3. 將選取的項目放入空格
+            dropZone.innerHTML = '';
+            dropZone.appendChild(selectedGrammarItem.element); 
+            dropZone.classList.remove('border-dashed');
+            dropZone.classList.add('border-solid', 'border-indigo-600', 'shadow-lg');
+            
+            // 4. 重置狀態並檢查
+            showGrammarDebug(`已填入空格。正在檢查答案...`);
+            selectedGrammarItem = null;
+            checkGrammarCompletion();
+
+        } else if (dropZone.querySelector('.drag-item')) {
+            // 如果沒有選取任何項目，但點擊了有項目的空格，將項目歸還
+            const itemToReturn = dropZone.querySelector('.drag-item');
+            if (itemToReturn) {
+                 itemToReturn.classList.remove('opacity-50', 'correct-animation', 'incorrect-animation', 'selected');
+                 grammarOptionsEl.appendChild(itemToReturn);
+                 
+                 // 重置空格外觀
+                 dropZone.innerHTML = `【${dropZone.dataset.targetType}】`;
+                 dropZone.classList.add('border-dashed');
+                 dropZone.classList.remove('border-solid', 'border-indigo-600', 'shadow-lg');
+                 showGrammarDebug('已從空格中移除項目。');
+            }
+        } else {
+            showGrammarDebug('請先點擊下方選項。');
+        }
+    }
+    // --- 點擊模式邏輯結束 ---
+
+    // --- 拖曳模式邏輯 (保留給電腦滑鼠操作) ---
     function handleDragStart(e) {
+        // 清除點擊選取狀態 (避免衝突)
+        document.querySelectorAll('.drag-item').forEach(item => item.classList.remove('selected'));
+        selectedGrammarItem = null; 
+
         dragData = {
             key: e.target.dataset.key,
             type: e.target.dataset.type,
@@ -714,6 +836,8 @@
 
         checkGrammarCompletion();
     }
+    // --- 拖曳模式邏輯結束 ---
+
 
     function checkGrammarCompletion() {
         const dropZones = structureEl.querySelectorAll('.drop-zone');
@@ -776,6 +900,7 @@
     }
 
     function showGrammarResult(text, type) {
+        // 這是顯示最終結果的函數
         grammarMessageText.textContent = text;
         grammarMessageBox.classList.remove('hidden');
         if (type === 'success') {
