@@ -123,7 +123,7 @@
         <!-- 修正: 提示解釋區 (顯示在下方) -->
         <div id="spelling-hint-area" class="w-full p-4 bg-gray-100 rounded-xl mb-8 text-center border-2 border-gray-300 shadow-inner">
             <p class="text-lg font-bold mb-1 text-gray-700">點擊卡片顯示解釋與提示</p>
-            <p class="text-xl italic text-gray-500 hidden text-left px-4 py-2" id="hint-text"></p>
+            <p class="text-xl italic text-left px-4 py-2" id="hint-text"></p>
             <p class="text-3xl font-bold mt-2 text-purple-600 hidden" id="spelling-result"></p>
         </div>
         
@@ -215,14 +215,8 @@
         { word: "hospital", meaning: "醫院", hint: "名詞 (n.)。\n用法：在醫院工作 (work at a hospital)；住院 (be in the hospital)。(Unit 5, No. 30)" }
     ];
     
-    // [新增單字] 擴充單字測驗 (Vocabulary Quiz) 內容 - 來自 PDF 解析卷
+    // [新增單字] 擴充單字測驗 (Vocabulary Quiz) 內容 - 來自 PDF 解析卷 (去重)
     const newVocabulary = [
-        // 來自 PDF 卷 No. 2, 3, 4, 16, 19, 30, 39
-        { 
-            word: "straight", 
-            meaning: "連續的;直地;直的", 
-            hint: "詞性：可作 adj. 或 adv.。多義：① 連續不斷的 (如: 連續五小時)；② 直的 (如: 直線、直走)。\n用法：keep going straight (持續直走)。" 
-        },
         { 
             word: "wonderful", 
             meaning: "美好的;很棒的", 
@@ -308,11 +302,7 @@
     ];
 
     // D. 最終合併單字表與文法表
-    const allVocabulary = [...baseVocabulary, ...newVocabulary].filter((item, index, self) => 
-        index === self.findIndex((t) => (
-            t.word === item.word 
-        ))
-    );
+    const allVocabulary = [...new Set([...baseVocabulary, ...newVocabulary].map(item => JSON.stringify(item)))].map(item => JSON.parse(item));
     const allGrammarData = [...baseGrammarData, ...newGrammarData]; // 合併所有文法題目
 
     
@@ -335,6 +325,7 @@
     let selectedGrammarItem = null; // 用於點擊替換模式
 
     // 混合模式專用
+    const MIXED_QUIZ_COUNT = 15; // 限制題目數量為 15 題
     let mixedChallengeList = [];
     let mixedIndex = 0;
     let mixedScore = 0;
@@ -626,18 +617,16 @@
         return '其他';
     }
 
-
-    function startGrammarChallenge() {
-        if (currentGrammarIndex >= allGrammarData.length) {
-            showGrammarResult('🎉 恭喜你！你完成了所有的文法挑戰！', 'success');
-            return;
-        }
-
-        const currentChallenge = allGrammarData[currentGrammarIndex];
+    // 渲染文法題目 (核心邏輯分離)
+    function renderGrammarChallenge(challengeData) {
+        const currentChallenge = challengeData;
         grammarQuestionEl.textContent = currentChallenge.question;
-        grammarMessageBox.classList.add('hidden');
+        
+        // 確保結構容器是空的
         structureEl.innerHTML = '';
         grammarOptionsEl.innerHTML = '';
+        
+        grammarMessageBox.classList.add('hidden');
         grammarHintArea.classList.add('hidden');
         
         selectedGrammarItem = null;
@@ -673,11 +662,19 @@
             structureEl.appendChild(span);
         });
 
-        // 渲染拖曳選項
+        // 渲染選項 (此部分獨立出來)
         allOptions.forEach(option => {
             const item = createDragItem(option);
             grammarOptionsEl.appendChild(item);
         });
+    }
+
+
+    function startGrammarChallenge() {
+        const currentChallenge = (currentMode === 'mixed') ? mixedChallengeList[mixedIndex].data : allGrammarData[currentGrammarIndex];
+        
+        // 啟動渲染
+        renderGrammarChallenge(currentChallenge);
     }
 
     function createDragItem(option) {
@@ -917,6 +914,9 @@
         // 2. 切換 UI 模式到第一個題目
         document.getElementById('mode-mixed').classList.add('hidden');
         
+        // 重置進度顯示
+        document.getElementById('progress-display').textContent = `1/${totalMixedChallenges}`;
+
         runNextMixedChallenge();
     }
     
@@ -971,13 +971,15 @@
     function startGrammarChallengeUI(challengeData) {
         // 語法邏輯重設
         grammarQuestionEl.textContent = challengeData.question;
-        grammarMessageBox.classList.add('hidden');
+        
+        // 確保結構容器是空的
         structureEl.innerHTML = '';
         grammarOptionsEl.innerHTML = '';
+        
+        grammarMessageBox.classList.add('hidden');
         grammarHintArea.classList.add('hidden');
         selectedGrammarItem = null;
         
-        // 確保題目數據正確傳遞
         const currentChallenge = challengeData;
 
         // 渲染文法題目 (使用 challengeData)
@@ -1008,10 +1010,14 @@
             structureEl.appendChild(span);
         });
 
-        allOptions.forEach(option => {
-            const item = createDragItem(option);
-            grammarOptionsEl.appendChild(item);
-        });
+        // *** 關鍵修復點：渲染選項 ***
+        // 這裡使用延遲確保 DOM 結構穩定後再渲染選項
+        setTimeout(() => {
+            allOptions.forEach(option => {
+                const item = createDragItem(option);
+                grammarOptionsEl.appendChild(item);
+            });
+        }, 100); 
     }
 
     function processMixedResult(isCorrect, type) {
@@ -1063,8 +1069,6 @@
             </button>
         `;
     }
-    
-    // (省略其他文法邏輯函數 checkGrammarCompletion, showGrammarResult, nextGrammarChallenge 等，它們與上版相同)
     
     function checkGrammarCompletion() {
         const dropZones = structureEl.querySelectorAll('.drop-zone');
