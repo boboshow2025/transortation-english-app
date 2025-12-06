@@ -304,6 +304,19 @@
     // D. 最終合併單字表與文法表
     const allVocabulary = [...new Set([...baseVocabulary, ...newVocabulary].map(item => JSON.stringify(item)))].map(item => JSON.parse(item));
     const allGrammarData = [...baseGrammarData, ...newGrammarData]; // 合併所有文法題目
+    
+    // E. 干擾項 (必須放在所有數據定義之後)
+    const extraOptions = [
+        { key: "drive", text: "Drive (開車)", icon: "🚗", type: 'verb' },
+        { key: "with", text: "With (和)", icon: "🤝", type: 'verb' },
+        { key: "a", text: "A (一個)", icon: "1️⃣", type: 'article' },
+        { key: "on", text: "On (在上)", icon: "👆", type: 'verb' }, 
+        { key: "go", text: "Go (去)", icon: "🏃", type: 'verb' },
+        { key: "scooter", text: "Scooter (機車)", icon: "🛵", type: 'vehicle' },
+        { key: "train", text: "Train (火車)", icon: "🚆", type: 'vehicle' },
+        { key: "past", text: "Past (經過)", icon: "➡️", type: 'preposition' },
+        { key: "walk", text: "Walk (走路)", icon: "🚶", type: 'verb' }
+    ];
 
     
     // =================================================================
@@ -1010,14 +1023,11 @@
             structureEl.appendChild(span);
         });
 
-        // *** 關鍵修復點：渲染選項 ***
-        // 這裡使用延遲確保 DOM 結構穩定後再渲染選項
-        setTimeout(() => {
-            allOptions.forEach(option => {
-                const item = createDragItem(option);
-                grammarOptionsEl.appendChild(item);
-            });
-        }, 100); 
+        // *** 關鍵修復點：渲染選項 (同步調用) ***
+        allOptions.forEach(option => {
+            const item = createDragItem(option);
+            grammarOptionsEl.appendChild(item);
+        });
     }
 
     function processMixedResult(isCorrect, type) {
