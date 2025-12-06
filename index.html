@@ -74,6 +74,9 @@
             <button onclick="switchMode('grammar')" id="btn-grammar" class="px-4 py-2 bg-indigo-600 text-white font-semibold rounded-full hover:bg-indigo-700 transition">
                 📝 文法填空
             </button>
+            <button onclick="switchMode('mixed')" id="btn-mixed" class="px-4 py-2 bg-yellow-600 text-white font-semibold rounded-full hover:bg-yellow-700 transition">
+                🔥 綜合測驗
+            </button>
         </div>
     </header>
 
@@ -82,7 +85,7 @@
         <div class="text-center p-10 bg-blue-50 rounded-2xl shadow-inner">
             <h2 class="text-3xl font-bold text-blue-800 mb-4">歡迎來到 Unit 5 挑戰！</h2>
             <p class="text-xl text-gray-700 mb-8">請選擇你想強化的學習模式：</p>
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
                 <button onclick="switchMode('spelling')" class="p-6 bg-purple-100 text-purple-800 rounded-xl shadow-lg hover:shadow-xl transition transform hover:scale-105">
                     <span class="text-4xl">✍️</span>
                     <p class="text-2xl font-bold mt-2">單字拼寫機</p>
@@ -93,6 +96,11 @@
                     <p class="text-2xl font-bold mt-2">文法片語填空</p>
                     <p class="text-sm mt-1">應用訓練：包含交通、導航、動作片語</p>
                 </button>
+                 <button onclick="switchMode('mixed')" class="p-6 bg-yellow-100 text-yellow-800 rounded-xl shadow-lg hover:shadow-xl transition transform hover:scale-105">
+                    <span class="text-4xl">🔥</span>
+                    <p class="text-2xl font-bold mt-2">綜合挑戰</p>
+                    <p class="text-sm mt-1">混合模式：單字與文法隨機交錯測驗</p>
+                </button>
             </div>
         </div>
     </section>
@@ -101,7 +109,7 @@
     <section id="mode-spelling" class="mode-view hidden p-4">
         <h2 class="text-3xl font-bold text-purple-600 mb-6 text-center">🧠 單字拼寫挑戰</h2>
         <p class="text-sm font-semibold mb-4 text-center">
-            目前進度: <span id="progress-display">0/10</span>
+            目前進度: <span id="progress-display">0/26</span>
         </p>
         
         <!-- 閃卡顯示區 (靜態卡片) -->
@@ -115,7 +123,7 @@
         <!-- 修正: 提示解釋區 (顯示在下方) -->
         <div id="spelling-hint-area" class="w-full p-4 bg-gray-100 rounded-xl mb-8 text-center border-2 border-gray-300 shadow-inner">
             <p class="text-lg font-bold mb-1 text-gray-700">點擊卡片顯示解釋與提示</p>
-            <p class="text-xl italic text-gray-500 hidden" id="hint-text"></p>
+            <p class="text-xl italic text-gray-500 hidden text-left px-4 py-2" id="hint-text"></p>
             <p class="text-3xl font-bold mt-2 text-purple-600 hidden" id="spelling-result"></p>
         </div>
         
@@ -150,7 +158,7 @@
         
         <!-- 新增：點擊模式提示 -->
         <div class="mb-4 text-center text-sm text-gray-500">
-            ✅ **行動裝置模式：** 請先點擊下方的選項，再點擊上方的空格進行填空。
+            ✅ **行動裝置/電腦模式：** 請點擊下方的選項選取，再點擊上方的空格填入。
         </div>
 
         <!-- 拖曳選項區 (Drag Items) -->
@@ -174,6 +182,17 @@
             <p id="full-sentence-display" class="font-medium"></p>
         </div>
     </section>
+    
+    <!-- 4. 綜合測驗模式 (Mixed Quiz) -->
+     <section id="mode-mixed" class="mode-view hidden p-4">
+        <div class="text-center p-10 bg-yellow-50 rounded-2xl shadow-inner">
+            <h2 class="text-3xl font-bold text-yellow-800 mb-4">🔥 綜合挑戰模式 🔥</h2>
+            <p class="text-xl text-gray-700 mb-8">此模式將隨機抽取所有單字拼寫和文法填空題目進行測驗。</p>
+            <button onclick="startMixedChallenge()" class="p-4 bg-yellow-600 text-white rounded-xl shadow-lg hover:shadow-xl transition transform hover:scale-105 font-bold text-xl">
+                 開始混合測驗
+            </button>
+        </div>
+    </section>
 
 </div>
 
@@ -182,176 +201,128 @@
     // 1. 數據定義 (Data Definitions)
     // =================================================================
 
-    // A. 單字測驗資料 (Vocabulary Data) - 升級為歸納式解釋
-    const vocabulary = [
-        { 
-            word: "metro", 
-            meaning: "捷運;地鐵", 
-            hint: "名詞 (n.)。\n用法：指城市地鐵或捷運系統。\n例句：You can go there by bus or metro. (Unit 5, No. 1)" 
-        },
-        { 
-            word: "lost", 
-            meaning: "迷路的;走失的", 
-            hint: "形容詞 (adj.)。\n多義：也表『不知所措的;迷惘的』。\n用法：常用於 get lost (迷路)。(Unit 5, No. 2)" 
-        },
-        { 
-            word: "map", 
-            meaning: "地圖", 
-            hint: "名詞 (n.)。\n用法：問路或導航時使用。\n例句：We need a map now. (Unit 5, No. 3)" 
-        },
-        { 
-            word: "ask", 
-            meaning: "請求;詢問", 
-            hint: "動詞 (v.)。\n用法：\n① ask + 人 + for + 物 (要求某物)\n② ask + 人 + to V (要求某人做...)\n(Unit 5, No. 4)" 
-        },
-        { 
-            word: "excuse", 
-            meaning: "藉口;理由 (n.) / 原諒 (v.)", 
-            hint: "多義：名詞表『藉口』，動詞表『原諒』。\n片語：make excuses (找藉口)。(Unit 5, No. 5)" 
-        },
+    // 原始單字測驗資料 (Vocabulary Data) - 來自 Unit 5 原始 PDF
+    const baseVocabulary = [
+        { word: "metro", meaning: "捷運;地鐵", hint: "名詞 (n.)。\n用法：指城市地鐵或捷運系統。\n例句：You can go there by bus or metro. (Unit 5, No. 1)" },
+        { word: "lost", meaning: "迷路的;走失的", hint: "形容詞 (adj.)。\n多義：也表『不知所措的;迷惘的』。\n用法：常用於 get lost (迷路)。(Unit 5, No. 2)" },
+        { word: "map", meaning: "地圖", hint: "名詞 (n.)。\n用法：問路或導航時使用。\n例句：We need a map now. (Unit 5, No. 3)" },
+        { word: "ask", meaning: "請求;詢問", hint: "動詞 (v.)。\n用法：\n① ask + 人 + for + 物 (要求某物)\n② ask + 人 + to V (要求某人做...)\n(Unit 5, No. 4)" },
+        { word: "excuse", meaning: "藉口;理由 (n.) / 原諒 (v.)", hint: "多義：名詞表『藉口』，動詞表『原諒』。\n片語：make excuses (找藉口)。(Unit 5, No. 5)" },
+        { word: "straight", meaning: "直地;直的", hint: "方向：不轉彎的 (Unit 5, No. 6)" },
+        { word: "ship", meaning: "輪船 (n.) / 運送 (v.)", hint: "多義：名詞表『大船』，動詞表『運輸』。\n例句：They took a ship to the USA. (Unit 5, No. 21)" },
+        { word: "taxi", meaning: "計程車", hint: "名詞 (n.)。\n用法：可搭配 take a taxi 或 by taxi。\n補充：taxi driver (計程車司機)。(Unit 5, No. 22)" },
+        { word: "scooter", meaning: "機車;滑板車", hint: "名詞 (n.)。\n差異：與 motorcycle 的主要差異在於是否有腳踏板。(Unit 5, No. 25)" },
+        { word: "hospital", meaning: "醫院", hint: "名詞 (n.)。\n用法：在醫院工作 (work at a hospital)；住院 (be in the hospital)。(Unit 5, No. 30)" }
+    ];
+    
+    // [新增單字] 擴充單字測驗 (Vocabulary Quiz) 內容 - 來自 PDF 解析卷
+    const newVocabulary = [
+        // 來自 PDF 卷 No. 2, 3, 4, 16, 19, 30, 39
         { 
             word: "straight", 
-            meaning: "直地 (adv.) / 直的 (adj.)", 
-            hint: "詞性：可作副詞或形容詞。\n用法：go straight (直走)。(Unit 5, No. 6)" 
+            meaning: "連續的;直地;直的", 
+            hint: "詞性：可作 adj. 或 adv.。多義：① 連續不斷的 (如: 連續五小時)；② 直的 (如: 直線、直走)。\n用法：keep going straight (持續直走)。" 
         },
         { 
-            word: "ship", 
-            meaning: "輪船 (n.) / 運送 (v.)", 
-            hint: "多義：名詞表『大船』，動詞表『運輸』。\n例句：They took a ship to the USA. (Unit 5, No. 21)" 
+            word: "wonderful", 
+            meaning: "美好的;很棒的", 
+            hint: "形容詞 (adj.)。\n用法：修飾名詞，強調事物的美好或優秀。\n例句：You did a wonderful job! (你做得太棒了！)" 
         },
         { 
-            word: "taxi", 
-            meaning: "計程車", 
-            hint: "名詞 (n.)。\n用法：可搭配 take a taxi 或 by taxi。\n補充：taxi driver (計程車司機)。(Unit 5, No. 22)" 
+            word: "ground", 
+            meaning: "地面;一樓", 
+            hint: "名詞 (n.)。\n多義：① 地面（指戶外）；② (英國用法) 指建築物的一樓 (The ground floor)。\n(臺灣的一樓在英國稱 ground floor)。" 
         },
         { 
-            word: "scooter", 
-            meaning: "機車;滑板車", 
-            hint: "名詞 (n.)。\n差異：與 motorcycle 的主要差異在於是否有腳踏板。(Unit 5, No. 25)" 
+            word: "block", 
+            meaning: "街區", 
+            hint: "名詞 (n.)。\n用法：指城市中的一個方形街區。\n例句：just one block away (只隔一個街區)。" 
         },
         { 
-            word: "hospital", 
-            meaning: "醫院", 
-            hint: "名詞 (n.)。\n用法：在醫院工作 (work at a hospital)；住院 (be in the hospital)。(Unit 5, No. 30)" 
+            word: "corner", 
+            meaning: "轉角;角落", 
+            hint: "名詞 (n.)。\n用法：\n① at the corner (在轉角處，動態)\n② on the corner (在轉角上，靜態)\n③ in the corner (在空間內的角落)。" 
+        },
+        { 
+            word: "surfing", 
+            meaning: "衝浪", 
+            hint: "動名詞 (V-ing)。\n用法：常與 go 搭配：go surfing (去衝浪)。\n多義：surf the Internet (上網)。" 
+        },
+        { 
+            word: "jogging", 
+            meaning: "慢跑", 
+            hint: "動名詞 (V-ing)。\n用法：常與 go 搭配：go jogging (去慢跑)。" 
+        },
+        { 
+            word: "plays", 
+            meaning: "戲劇;劇本", 
+            hint: "名詞 (n.)。\n多義：是動詞 play 的名詞形式，意為『戲劇』或『劇本』。\n例句：Henry is an actor in many kids' plays. " 
+        },
+        { 
+            word: "bell", 
+            meaning: "鐘;鈴", 
+            hint: "名詞 (n.)。\n多義：指時鐘的鐘聲、電話鈴聲、車鈴或門鈴。\n補充：doorbell (門鈴)。" 
+        },
+        { 
+            word: "hit", 
+            meaning: "碰撞;打擊", 
+            hint: "動詞/名詞。\n三態：hit-hit-hit (不規則變化)。\n用法：常指車禍或物品的撞擊。\n多義：也指時間『到達』某點 (the clock hits 12:00)。" 
+        },
+        { 
+            word: "around", 
+            meaning: "大約", 
+            hint: "副詞 (adv.) / 介系詞 (prep.)。\n多義：① 大約 (後接數字，如 around 4:30)；② 圍繞 (介系詞)。" 
+        },
+        { 
+            word: "bank", 
+            meaning: "銀行;河岸", 
+            hint: "名詞 (n.)。\n多義：① 銀行 (去銀行借錢)；② 河岸/河堤 (沿著河岸走: along the river bank)。" 
         }
     ];
-    
-    // B. 文法填空資料 (Grammar Data) - 擴充片語和文法點
-    const grammarData = [
-      // 交通工具基礎用法
-      {
-        "id": 1,
-        "question": "他們總是 [__] [__] 去那間博物館。",
-        "structure": ["They always go to the museum", "【介系詞】", "【載具】", "."],
-        "targetVerb": "by",
-        "targetVehicle": "metro",
-        "vehicleText": "Metro (捷運)",
-        "icon": "🚇",
-        "rule": "交通語法：搭乘方式用 'by' 時，後面直接接交通工具，不加冠詞 a/the。",
-        "fullSentence": "They always go to the museum by metro."
-      },
-      {
-        "id": 2,
-        "question": "我們可以在這裡 [__] [__] 計程車回家嗎？",
-        "structure": ["Can we", "【動詞】", "a", "【載具】", "home here?"],
-        "targetVerb": "take",
-        "targetVehicle": "taxi",
-        "vehicleText": "Taxi (計程車)",
-        "icon": "🚕",
-        "rule": "交通語法：使用動詞 'take' 時，後面需要加上冠詞 a/the 再接交通工具。",
-        "fullSentence": "Can we take a taxi home here?"
-      },
-      {
-        "id": 3,
-        "question": "我的朋友喜歡 [__] [__] 單車沿著河岸走。",
-        "structure": ["My friend likes to", "【動詞】", "his", "【載具】", "along the bank."],
-        "targetVerb": "ride",
-        "targetVehicle": "bike",
-        "vehicleText": "Bike (單車)",
-        "icon": "🚲",
-        "rule": "交通語法：騎乘兩輪或有座位的交通工具時，常使用 'ride'。",
-        "fullSentence": "My friend likes to ride his bike along the bank."
-      },
-      // 上下車片語
-      {
-        "id": 4,
-        "question": "我們需要在圖書館 [__] [__] 這輛公車。",
-        "structure": ["We need to", "【動詞】", "【介系詞】", "the bus at the library."],
-        "targetVerb": "get",
-        "targetVehicle": "off",
-        "vehicleText": "Off (下車)",
-        "icon": "⬇️",
-        "rule": "片語用法：'Get off' 用於下大型交通工具 (公車、火車、捷運)。",
-        "fullSentence": "We need to get off the bus at the library."
-      },
-      // 導航片語
-      {
-        "id": 5,
-        "question": "請在醫院右轉，然後 [__] [__] 直走。",
-        "structure": ["Please turn right at the hospital and keep", "【動詞】", "【方向】", "."],
-        "targetVerb": "going",
-        "targetVehicle": "straight",
-        "vehicleText": "Straight (直地)",
-        "icon": "⬆️",
-        "rule": "片語用法：'keep going straight' 意為保持直走。",
-        "fullSentence": "Please turn right at the hospital and keep going straight."
-      },
-      {
-        "id": 6,
-        "question": "電影院在市場的 [__] [__]。",
-        "structure": ["The theater is", "【介系詞片語】", "【地點】", "the market."],
-        "targetVerb": "across",
-        "targetVehicle": "from",
-        "vehicleText": "From (對面)",
-        "icon": "↔️",
-        "rule": "介系詞片語：'across from' 意為在...的對面。",
-        "fullSentence": "The theater is across from the market."
-      },
-      {
-        "id": 7,
-        "question": "你應該 [__] [__] 你的朋友來幫你。",
-        "structure": ["You should", "【動詞】", "【片語】", "your friends to help you."],
-        "targetVerb": "ask",
-        "targetVehicle": "to",
-        "vehicleText": "To (要求)",
-        "icon": "👉",
-        "rule": "動詞用法：'ask + 人 + to V' 意為要求某人做某事。",
-        "fullSentence": "You should ask your friends to help you."
-      },
-      {
-        "id": 8,
-        "question": "艾咪 [__] [__] 店員要了一杯水。",
-        "structure": ["Amy", "【動詞】", "【片語】", "the clerk for a glass of water."],
-        "targetVerb": "asked",
-        "targetVehicle": "for",
-        "vehicleText": "For (要求)",
-        "icon": "🎁",
-        "rule": "動詞用法：'ask + 人 + for + 物' 意為向某人要求某物。",
-        "fullSentence": "Amy asked the clerk for a glass of water."
-      }
+
+    // C. 文法填空資料 (Grammar Data) - 原始與擴充題目合併
+    const baseGrammarData = [
+      { "id": 1, "question": "他們總是 [__] [__] 去那間博物館。", "structure": ["They always go to the museum", "【介系詞】", "【載具】", "."], "targetVerb": "by", "targetVehicle": "metro", "vehicleText": "Metro (捷運)", "icon": "🚇", "rule": "交通語法：搭乘方式用 'by' 時，後面直接接交通工具，不加冠詞 a/the。", "fullSentence": "They always go to the museum by metro." },
+      { "id": 2, "question": "我們可以在這裡 [__] [__] 計程車回家嗎？", "structure": ["Can we", "【動詞】", "a", "【載具】", "home here?"], "targetVerb": "take", "targetVehicle": "taxi", "vehicleText": "Taxi (計程車)", "icon": "🚕", "rule": "交通語法：使用動詞 'take' 時，後面需要加上冠詞 a/the 再接交通工具。", "fullSentence": "Can we take a taxi home here?" },
+      { "id": 3, "question": "我的朋友喜歡 [__] [__] 單車沿著河岸走。", "structure": ["My friend likes to", "【動詞】", "his", "【載具】", "along the bank."], "targetVerb": "ride", "targetVehicle": "bike", "vehicleText": "Bike (單車)", "icon": "🚲", "rule": "交通語法：騎乘兩輪或有座位的交通工具時，常使用 'ride'。", "fullSentence": "My friend likes to ride his bike along the bank." },
+      { "id": 4, "question": "我們需要在圖書館 [__] [__] 這輛公車。", "structure": ["We need to", "【動詞】", "【介系詞】", "the bus at the library."], "targetVerb": "get", "targetVehicle": "off", "vehicleText": "Off (下車)", "icon": "⬇️", "rule": "片語用法：'Get off' 用於下大型交通工具 (公車、火車、捷運)。", "fullSentence": "We need to get off the bus at the library." },
+      { "id": 5, "question": "請在醫院右轉，然後 [__] [__] 直走。", "structure": ["Please turn right at the hospital and keep", "【動詞】", "【方向】", "."], "targetVerb": "going", "targetVehicle": "straight", "vehicleText": "Straight (直地)", "icon": "⬆️", "rule": "片語用法：'keep going straight' 意為保持直走。", "fullSentence": "Please turn right at the hospital and keep going straight." },
+      { "id": 6, "question": "電影院在市場的 [__] [__]。", "structure": ["The theater is", "【介系詞片語】", "【地點】", "the market."], "targetVerb": "across", "targetVehicle": "from", "vehicleText": "From (對面)", "icon": "↔️", "rule": "介系詞片語：'across from' 意為在...的對面。", "fullSentence": "The theater is across from the market." },
+      { "id": 7, "question": "你應該 [__] [__] 你的朋友來幫你。", "structure": ["You should", "【動詞】", "【片語】", "your friends to help you."], "targetVerb": "ask", "targetVehicle": "to", "vehicleText": "To (要求)", "icon": "👉", "rule": "動詞用法：'ask + 人 + to V' 意為要求某人做某事。", "fullSentence": "You should ask your friends to help you." },
+      { "id": 8, "question": "艾咪 [__] [__] 店員要了一杯水。", "structure": ["Amy", "【動詞】", "【片語】", "the clerk for a glass of water."], "targetVerb": "asked", "targetVehicle": "for", "vehicleText": "For (要求)", "icon": "🎁", "rule": "動詞用法：'ask + 人 + for + 物' 意為向某人要求某物。", "fullSentence": "Amy asked the clerk for a glass of water." }
     ];
     
-    // 拖曳選項 (干擾項)
-    const extraOptions = [
-        { key: "drive", text: "Drive (開車)", icon: "🚗", type: 'verb' },
-        { key: "with", text: "With (和)", icon: "🤝", type: 'verb' },
-        { key: "a", text: "A (一個)", icon: "1️⃣", type: 'article' },
-        { key: "on", text: "On (在上)", icon: "👆", type: 'verb' }, 
-        { key: "go", text: "Go (去)", icon: "🏃", type: 'verb' },
-        { key: "scooter", text: "Scooter (機車)", icon: "🛵", type: 'vehicle' },
-        { key: "train", text: "Train (火車)", icon: "🚆", type: 'vehicle' },
-        { key: "past", text: "Past (經過)", icon: "➡️", type: 'preposition' },
-        { key: "walk", text: "Walk (走路)", icon: "🚶", type: 'verb' }
+    // [新增文法] 來自 PDF 解析卷
+    const newGrammarData = [
+        { "id": 9, "question": "醒醒，該 [__] [__] 這輛公車了。這是最後一站。", "structure": ["Wake up. Time to", "【動詞】", "【介系詞】", "the bus. It's the last stop."], "targetVerb": "get", "targetVehicle": "off", "vehicleText": "Off (下車)", "icon": "⬇️", "rule": "上下車片語：最後一站了,該是「下車」的時候了 (get off)。", "fullSentence": "Time to get off the bus." },
+        { "id": 10, "question": "我放學後通常從學校 [__] [__] 奶奶家。", "structure": ["I usually walk", "【介系詞】", "school", "【介系詞】", "my grandma's house."], "targetVerb": "from", "targetVehicle": "to", "vehicleText": "To (到)", "icon": "👉", "rule": "移動片語：從 A 地到 B 地使用 'walk from A to B'。", "fullSentence": "I usually walk from school to my grandma's house." },
+        { "id": 11, "question": "Nicky 總會 [__] [__] 她的哥哥協助英文作業。", "structure": ["Nicky always asks her brother", "【介系詞】", "【名詞】", "help."], "targetVerb": "for", "targetVehicle": "help", "vehicleText": "Help (協助)", "icon": "🤝", "rule": "片語用法：向某人請求協助用 'ask... for help'。", "fullSentence": "Nicky always asks her brother for help." },
+        { "id": 12, "question": "他們 [__] [__] 飛機去了紐約。", "structure": ["They flew to New York", "【介系詞】", "【載具】", "."], "targetVerb": "by", "targetVehicle": "plane", "vehicleText": "Plane (飛機)", "icon": "✈️", "rule": "交通語法：動詞 'flew' 已存在，交通方式用 'by' + 交通工具。", "fullSentence": "They flew to New York by plane." },
+        { "id": 13, "question": "咖啡館位於 Park Street 和 Station Road 的 [__] [__]。", "structure": ["The coffee house is", "【介系詞】", "the corner", "【介系詞】", "Park Street and Station Road."], "targetVerb": "on", "targetVehicle": "of", "vehicleText": "Of (的)", "icon": "📍", "rule": "地點片語：在 A 與 B 的轉角處用 'on the corner of A and B'。", "fullSentence": "The coffee house is on the corner of Park Street and Station Road." },
+        { "id": 14, "question": "直走，然後在警察局 [__] [__]。", "structure": ["Go straight, and turn left", "【介系詞】", "【地點】", "the police station."], "targetVerb": "at", "targetVehicle": "at", "vehicleText": "At (在)", "icon": "🛑", "rule": "導航片語：在某地點轉彎用 'turn left/right at + 地點'。", "fullSentence": "Turn left at the police station." },
+        { "id": 15, "question": "Tiffany 每天都忙著 [__] [__]。", "structure": ["Tiffany is busy", "【動詞】", "【名詞】", "every day."], "targetVerb": "working", "targetVehicle": "x", "vehicleText": "Working (工作)", "icon": "💼", "rule": "文法結構：忙於某事用 'be busy + V-ing'。", "fullSentence": "Tiffany is busy working every day." },
+        { "id": 16, "question": "Rita 停下工作去 [__] [__] 一下。", "structure": ["Rita stopped", "【不定詞】", "【動作】", "a rest."], "targetVerb": "to", "targetVehicle": "take", "vehicleText": "Take (休息)", "icon": "☕", "rule": "動詞用法：'stop to V' 意為停下動作去做 V (stop to take a rest)。", "fullSentence": "Rita stopped to take a rest." },
+        { "id": 17, "question": "[__] [__] 我可以到達公園？", "structure": ["【疑問詞】", "【動詞】", "I get to the park?"], "targetVerb": "How", "targetVehicle": "do", "vehicleText": "Do (助動詞)", "icon": "🤔", "rule": "疑問句：詢問如何到達某處用 'How do I get to...?'。", "fullSentence": "How do I get to the park?" },
+        { "id": 18, "question": "我們 [__] [__] 巴士回臺北，但我們 [__] [__] 火車。", "structure": ["We", "【動詞】", "a bus to Taipei, but we", "【介系詞】", "train."], "targetVerb": "took", "targetVehicle": "by", "vehicleText": "By (藉由)", "icon": "🚆", "rule": "動詞片語 'took a bus' 和介系詞片語 'by train' 的對比。", "fullSentence": "We took a bus to Taipei, but we went by train." },
+        { "id": 19, "question": "現在我們必須 [__] [__] 走另一條路。", "structure": ["Now we have to", "【動詞】", "【方向】", "and take another road."], "targetVerb": "turn", "targetVehicle": "back", "vehicleText": "Back (回頭)", "icon": "↩️", "rule": "片語：『回頭走』用 'turn back'。", "fullSentence": "Now we have to turn back." }
     ];
 
+    // D. 最終合併單字表與文法表
+    const allVocabulary = [...baseVocabulary, ...newVocabulary].filter((item, index, self) => 
+        index === self.findIndex((t) => (
+            t.word === item.word 
+        ))
+    );
+    const allGrammarData = [...baseGrammarData, ...newGrammarData]; // 合併所有文法題目
 
+    
     // =================================================================
     // 2. 全域狀態與元素參考 (Global State and Element References)
     // =================================================================
 
     // 模式切換狀態
     let currentMode = 'menu';
-    const modes = ['menu', 'spelling', 'grammar'];
+    const modes = ['menu', 'spelling', 'grammar', 'mixed']; // 新增 mixed 模式
     
     // 單字測驗狀態
     let currentWordIndex = 0;
@@ -360,8 +331,15 @@
 
     // 文法填空狀態
     let currentGrammarIndex = 0;
-    let dragData = {}; // 用於標準拖曳
+    let dragData = {}; 
     let selectedGrammarItem = null; // 用於點擊替換模式
+
+    // 混合模式專用
+    let mixedChallengeList = [];
+    let mixedIndex = 0;
+    let mixedScore = 0;
+    let totalMixedChallenges = 0;
+    
 
     // 元素參考 (Spelling)
     const flashcardStaticEl = document.getElementById('flashcard-static'); 
@@ -406,12 +384,16 @@
 
         currentMode = mode;
 
-        // 隱藏所有內容區塊
+        // 隱藏所有內容區塊 (準備切換)
+        document.getElementById('mode-menu').classList.add('hidden');
+        document.getElementById('mode-spelling').classList.add('hidden');
+        document.getElementById('mode-grammar').classList.add('hidden');
+        document.getElementById('mode-mixed').classList.add('hidden');
+
+        // 重置按鈕樣式
         modes.forEach(m => {
-            const el = document.getElementById(`mode-${m}`);
-            if (el) el.classList.add('hidden');
             const btn = document.getElementById(`btn-${m}`);
-            if (btn) btn.classList.remove('bg-purple-700', 'bg-indigo-700', 'text-white', 'bg-gray-300', 'text-gray-700');
+            if (btn) btn.classList.remove('bg-purple-700', 'bg-indigo-700', 'bg-yellow-700', 'text-white', 'bg-gray-300', 'text-gray-700');
         });
         
         // 顯示當前區塊並更新按鈕樣式
@@ -424,6 +406,8 @@
                 currentBtn.classList.add('bg-purple-700', 'text-white');
             } else if (mode === 'grammar') {
                 currentBtn.classList.add('bg-indigo-700', 'text-white');
+            } else if (mode === 'mixed') {
+                 currentBtn.classList.add('bg-yellow-700', 'text-white');
             } else if (mode === 'menu') {
                  currentBtn.classList.add('bg-gray-300', 'text-gray-700');
             }
@@ -431,17 +415,18 @@
         
         // 模式初始化
         if (mode === 'spelling') {
-            // 洗牌並開始單字測驗
-            vocabulary.sort(() => 0.5 - Math.random());
+            document.getElementById('progress-display').textContent = `0/${allVocabulary.length}`;
+            allVocabulary.sort(() => 0.5 - Math.random());
             currentWordIndex = 0;
             spellingScore = 0;
             startSpellingQuiz();
         } else if (mode === 'grammar') {
-            // 重置文法狀態並開始挑戰
-            grammarData.sort(() => 0.5 - Math.random());
+            allGrammarData.sort(() => 0.5 - Math.random());
             currentGrammarIndex = 0;
             selectedGrammarItem = null;
             startGrammarChallenge();
+        } else if (mode === 'mixed') {
+             // 混合模式在點擊按鈕時才會啟動
         }
     }
 
@@ -450,17 +435,21 @@
     // 4. 單字測驗邏輯 (Spelling Quiz Logic)
     // =================================================================
 
-    function updateProgress() {
-        progressDisplay.textContent = `${currentWordIndex}/${vocabulary.length}`;
+    function updateProgress(total) {
+        if (currentMode === 'spelling') {
+            progressDisplay.textContent = `${currentWordIndex}/${allVocabulary.length}`;
+        } else if (currentMode === 'mixed') {
+            progressDisplay.textContent = `${mixedIndex + 1}/${total}`;
+        }
     }
 
     function startSpellingQuiz() {
-        if (currentWordIndex >= vocabulary.length) {
+        if (currentWordIndex >= allVocabulary.length) {
             endSpellingGame();
             return; // 遊戲結束，安全退出
         }
         
-        currentQuiz = vocabulary[currentWordIndex];
+        currentQuiz = allVocabulary[currentWordIndex];
         
         // 重置狀態
         inputEl.value = '';
@@ -476,7 +465,7 @@
         meaningEl.textContent = currentQuiz.meaning;
         
         // 重置提示區
-        hintTitleEl.textContent = "點擊卡片顯示解釋與提示"; // 提示區標題
+        hintTitleEl.textContent = "點擊卡片顯示解釋與提示"; 
         
         // 設置提示內容，並用換行符號取代 '\n'
         hintEl.innerHTML = currentQuiz.hint.replace(/\n/g, '<br>');
@@ -484,7 +473,7 @@
         hintEl.classList.add('hidden'); // 隱藏提示內容
         spellingResultEl.classList.add('hidden'); // 隱藏結果
         
-        updateProgress();
+        updateProgress(allVocabulary.length);
     }
 
     // 點擊卡片顯示提示邏輯 (取代反轉)
@@ -515,26 +504,32 @@
 
         inputEl.disabled = true;
         checkBtn.disabled = true;
+        let isCorrect = userInput === correctWord;
 
-        if (userInput === correctWord) {
+        if (isCorrect) {
             handleCorrectSpelling();
         } else {
             handleIncorrectSpelling(correctWord);
         }
-
-        nextBtn.classList.remove('hidden');
+        
+        if (currentMode === 'mixed') {
+            processMixedResult(isCorrect, 'spelling');
+        } else {
+            nextBtn.classList.remove('hidden');
+        }
     }
 
     function handleCorrectSpelling() {
-        spellingScore++;
+        if (currentMode === 'spelling') spellingScore++;
+        
         messageBox.className = 'mt-6 p-4 text-center rounded-xl transition duration-500 bg-green-100 text-green-700 shadow-md';
-        messageText.textContent = `✅ 拼字完全正確！太棒了！ (Score: ${spellingScore})`;
+        messageText.textContent = `✅ 拼字完全正確！太棒了！ (Score: ${currentMode === 'spelling' ? spellingScore : mixedScore + 1})`;
         inputEl.classList.add('border-green-500');
         
         // 修正: 顯示正確答案
         hintTitleEl.textContent = "✅ 正確拼法：";
-        hintEl.classList.add('hidden'); // 隱藏提示
-        spellingResultEl.classList.remove('hidden'); // 顯示結果
+        hintEl.classList.add('hidden'); 
+        spellingResultEl.classList.remove('hidden'); 
         spellingResultEl.textContent = currentQuiz.word;
     }
 
@@ -545,8 +540,8 @@
 
         // 修正: 顯示打字機答案
         hintTitleEl.textContent = "❌ 正確拼法：";
-        hintEl.classList.add('hidden'); // 隱藏提示
-        spellingResultEl.classList.remove('hidden'); // 顯示結果
+        hintEl.classList.add('hidden'); 
+        spellingResultEl.classList.remove('hidden'); 
 
         spellingResultEl.textContent = '';
         typeWriterEffect(correctWord, spellingResultEl);
@@ -580,12 +575,10 @@
         nextBtn.classList.add('hidden');
 
         let finalMessage;
-        if (spellingScore === vocabulary.length) {
-            finalMessage = `🎉 恭喜！你以滿分 ${spellingScore}/${vocabulary.length} 完成所有單字拼寫！太厲害了！`;
-        } else if (spellingScore >= vocabulary.length / 2) {
-            finalMessage = `👍 挑戰完成！你的分數是 ${spellingScore}/${vocabulary.length}。表現不錯，再接再厲！`;
+        if (spellingScore === allVocabulary.length) {
+            finalMessage = `🎉 恭喜！你以滿分 ${spellingScore}/${allVocabulary.length} 完成所有單字拼寫！太厲害了！`;
         } else {
-            finalMessage = `💪 挑戰完成！你的分數是 ${spellingScore}/${vocabulary.length}。沒關係，多加練習就能掌握！`;
+            finalMessage = `💪 挑戰完成！你的分數是 ${spellingScore}/${allVocabulary.length}。再接再厲！`;
         }
 
         messageBox.className = 'mt-6 p-4 text-center rounded-xl transition duration-500 bg-blue-100 text-blue-700 shadow-xl';
@@ -603,7 +596,10 @@
             case 'on': return 'On (在...上)'; case 'get': return 'Get (得到)'; case 'off': return 'Off (離開)';
             case 'foot': return 'Foot (腳)'; case 'going': return 'Going (正在走)'; case 'straight': return 'Straight (直地)';
             case 'across': return 'Across (橫越)'; case 'from': return 'From (對面)'; case 'asked': return 'Asked (過去式)';
-            case 'to': return 'To (不定詞)'; case 'for': return 'For (為了)'; default: return key.toUpperCase();
+            case 'to': return 'To (不定詞)'; case 'for': return 'For (為了)'; case 'do': return 'Do (助動詞)'; case 'plane': return 'Plane (飛機)';
+            case 'help': return 'Help (協助)'; case 'at': return 'At (在)'; case 'of': return 'Of (的)'; case 'back': return 'Back (回頭)';
+            case 'take': return 'Take (休息)'; case 'working': return 'Working (工作)'; case 'How': return 'How (如何)';
+            default: return key.toUpperCase();
         }
     }
     function getVerbIcon(key) {
@@ -612,52 +608,38 @@
             case 'on': return '⬆️'; case 'get': return '➡️'; case 'off': return '⬇️';
             case 'foot': return '🦶'; case 'going': return '🏃'; case 'straight': return '🛣️';
             case 'across': return '↔️'; case 'from': return '🔙'; case 'asked': return '📜';
-            case 'to': return '🎯'; case 'for': return '🎁'; default: return '❓';
+            case 'to': return '🎯'; case 'for': return '🎁'; case 'do': return '🛠️'; case 'plane': return '✈️';
+            case 'help': return '🤝'; case 'at': return '📍'; case 'of': return '🔗'; case 'back': return '↩️';
+            case 'take': return '☕'; case 'working': return '💼'; case 'How': return '🤔';
+            default: return '❓';
         }
     }
     function getVerbType(key) {
-        if (['take', 'ride', 'get', 'going', 'asked'].includes(key)) return '動詞';
-        if (['by', 'on', 'off', 'from', 'for'].includes(key)) return '介系詞';
+        if (['take', 'ride', 'get', 'going', 'asked', 'do'].includes(key)) return '動詞';
+        if (['by', 'on', 'off', 'from', 'for', 'at', 'of'].includes(key)) return '介系詞';
         if (['across'].includes(key)) return '介系詞片語';
-        if (['straight'].includes(key)) return '方向';
+        if (['straight', 'back'].includes(key)) return '方向';
         if (['to'].includes(key)) return '不定詞';
-        if (['foot', 'metro', 'taxi', 'bike', 'ship', 'scooter'].includes(key)) return '載具';
+        if (['foot', 'metro', 'taxi', 'bike', 'ship', 'scooter', 'plane'].includes(key)) return '載具';
+        if (['help', 'working', 'take'].includes(key)) return '名詞/V-ing';
+        if (['How'].includes(key)) return '疑問詞';
         return '其他';
-    }
-
-    // 新增：顯示除錯訊息
-    function showGrammarDebug(text) {
-        // 使用黃色背景的訊息框進行除錯回饋，並短暫顯示
-        const debugEl = document.getElementById('grammar-message-text');
-        const boxEl = document.getElementById('grammar-message-box');
-        
-        boxEl.classList.remove('hidden');
-        boxEl.className = 'mt-8 p-4 text-center rounded-xl transition duration-500 bg-yellow-100 text-yellow-700 shadow-xl';
-        debugEl.textContent = `[偵錯中] ${text}`;
-
-        setTimeout(() => {
-            // 只有在還未顯示正式結果時才隱藏
-            if (boxEl.classList.contains('bg-yellow-100')) { 
-                boxEl.classList.add('hidden');
-            }
-        }, 1500);
     }
 
 
     function startGrammarChallenge() {
-        if (currentGrammarIndex >= grammarData.length) {
+        if (currentGrammarIndex >= allGrammarData.length) {
             showGrammarResult('🎉 恭喜你！你完成了所有的文法挑戰！', 'success');
             return;
         }
 
-        const currentChallenge = grammarData[currentGrammarIndex];
+        const currentChallenge = allGrammarData[currentGrammarIndex];
         grammarQuestionEl.textContent = currentChallenge.question;
         grammarMessageBox.classList.add('hidden');
         structureEl.innerHTML = '';
         grammarOptionsEl.innerHTML = '';
         grammarHintArea.classList.add('hidden');
         
-        // 清除選擇狀態
         selectedGrammarItem = null;
 
         // 隨機組合選項
@@ -678,10 +660,7 @@
                 span.className = 'drop-zone bg-white rounded-xl shadow-inner flex items-center justify-center p-2 min-w-[6rem] min-h-[3.5rem] border-2 border-dashed border-indigo-400 hover:border-indigo-600 transition-all text-xl md:text-2xl';
                 span.dataset.targetType = part.replace(/[【】]/g, ''); 
                 
-                // *** 綁定點擊事件用於手機模式 ***
-                span.addEventListener('click', handleDropZoneClick);
-
-                // 標準拖曳事件 (用於電腦滑鼠)
+                span.addEventListener('click', handleDropZoneClick); // 點擊事件
                 span.addEventListener('dragover', allowDrop);
                 span.addEventListener('dragleave', handleDragLeave);
                 span.addEventListener('drop', handleDrop);
@@ -709,87 +688,13 @@
         item.dataset.key = option.key;
         item.dataset.type = option.type;
         
-        // 標準拖曳事件 (用於電腦滑鼠)
         item.addEventListener('dragstart', handleDragStart);
-        
-        // *** 綁定點擊事件用於手機模式 ***
         item.addEventListener('click', handleItemClick);
 
         return item;
     }
 
-    // --- 點擊模式邏輯 ---
-    function handleItemClick(e) {
-        const clickedItem = e.currentTarget;
-        
-        // 移除所有選項的選取狀態
-        document.querySelectorAll('.drag-item').forEach(item => {
-            item.classList.remove('selected');
-        });
-        
-        // 如果點擊的是已經選取的項目，則取消選取
-        if (selectedGrammarItem && selectedGrammarItem.element === clickedItem) {
-            selectedGrammarItem = null;
-            showGrammarDebug(`選項『${clickedItem.dataset.key}』已取消選取。`);
-        } else {
-            // 否則，選取它
-            clickedItem.classList.add('selected');
-            selectedGrammarItem = {
-                key: clickedItem.dataset.key,
-                type: clickedItem.dataset.type,
-                element: clickedItem
-            };
-            showGrammarDebug(`選項『${clickedItem.dataset.key}』已選取。請點擊空格。`);
-        }
-    }
-
-    function handleDropZoneClick(e) {
-        const dropZone = e.currentTarget;
-
-        if (selectedGrammarItem) {
-            // 1. 如果空格內已有項目，將其歸還到選項區
-            const existingItem = dropZone.querySelector('.drag-item');
-            if (existingItem) {
-                existingItem.classList.remove('opacity-50', 'correct-animation', 'incorrect-animation', 'selected');
-                grammarOptionsEl.appendChild(existingItem);
-            }
-            
-            // 2. 移除選項區的選取狀態
-            selectedGrammarItem.element.classList.remove('selected');
-            
-            // 3. 將選取的項目放入空格
-            dropZone.innerHTML = '';
-            dropZone.appendChild(selectedGrammarItem.element); 
-            dropZone.classList.remove('border-dashed');
-            dropZone.classList.add('border-solid', 'border-indigo-600', 'shadow-lg');
-            
-            // 4. 重置狀態並檢查
-            showGrammarDebug(`已填入空格。正在檢查答案...`);
-            selectedGrammarItem = null;
-            checkGrammarCompletion();
-
-        } else if (dropZone.querySelector('.drag-item')) {
-            // 如果沒有選取任何項目，但點擊了有項目的空格，將項目歸還
-            const itemToReturn = dropZone.querySelector('.drag-item');
-            if (itemToReturn) {
-                 itemToReturn.classList.remove('opacity-50', 'correct-animation', 'incorrect-animation', 'selected');
-                 grammarOptionsEl.appendChild(itemToReturn);
-                 
-                 // 重置空格外觀
-                 dropZone.innerHTML = `【${dropZone.dataset.targetType}】`;
-                 dropZone.classList.add('border-dashed');
-                 dropZone.classList.remove('border-solid', 'border-indigo-600', 'shadow-lg');
-                 showGrammarDebug('已從空格中移除項目。');
-            }
-        } else {
-            showGrammarDebug('請先點擊下方選項。');
-        }
-    }
-    // --- 點擊模式邏輯結束 ---
-
-    // --- 拖曳模式邏輯 (保留給電腦滑鼠操作) ---
     function handleDragStart(e) {
-        // 清除點擊選取狀態 (避免衝突)
         document.querySelectorAll('.drag-item').forEach(item => item.classList.remove('selected'));
         selectedGrammarItem = null; 
 
@@ -825,7 +730,6 @@
         dropZone.innerHTML = '';
         dropZone.appendChild(dragData.element); 
         
-        // 確保 DOM 元素正確識別
         if (!dropZone.querySelector('.drag-item')) {
              dropZone.textContent = `【${dropZone.dataset.targetType}】`;
              return; 
@@ -836,8 +740,83 @@
 
         checkGrammarCompletion();
     }
-    // --- 拖曳模式邏輯結束 ---
+    
+    // Debug 函數
+    function showGrammarDebug(text) {
+        const debugEl = document.getElementById('grammar-message-text');
+        const boxEl = document.getElementById('grammar-message-box');
+        
+        boxEl.classList.remove('hidden');
+        boxEl.className = 'mt-8 p-4 text-center rounded-xl transition duration-500 bg-yellow-100 text-yellow-700 shadow-xl';
+        debugEl.textContent = `[偵錯中] ${text}`;
 
+        setTimeout(() => {
+            if (boxEl.classList.contains('bg-yellow-100')) { 
+                boxEl.classList.add('hidden');
+            }
+        }, 1500);
+    }
+
+    // 點擊選項卡片
+    function handleItemClick(e) {
+        const clickedItem = e.currentTarget;
+        
+        document.querySelectorAll('.drag-item').forEach(item => {
+            item.classList.remove('selected');
+        });
+        
+        if (selectedGrammarItem && selectedGrammarItem.element === clickedItem) {
+            selectedGrammarItem = null;
+            showGrammarDebug(`選項『${getVerbText(clickedItem.dataset.key)}』已取消選取。`);
+        } else {
+            clickedItem.classList.add('selected');
+            selectedGrammarItem = {
+                key: clickedItem.dataset.key,
+                type: clickedItem.dataset.type,
+                element: clickedItem
+            };
+            showGrammarDebug(`選項『${getVerbText(clickedItem.dataset.key)}』已選取。請點擊空格。`);
+        }
+    }
+
+    // 點擊空格區域
+    function handleDropZoneClick(e) {
+        const dropZone = e.currentTarget;
+
+        if (selectedGrammarItem) {
+            const existingItem = dropZone.querySelector('.drag-item');
+            
+            if (existingItem) {
+                existingItem.classList.remove('opacity-50', 'correct-animation', 'incorrect-animation', 'selected');
+                grammarOptionsEl.appendChild(existingItem);
+            }
+            
+            selectedGrammarItem.element.classList.remove('selected');
+            
+            dropZone.innerHTML = '';
+            dropZone.appendChild(selectedGrammarItem.element); 
+            dropZone.classList.remove('border-dashed');
+            dropZone.classList.add('border-solid', 'border-indigo-600', 'shadow-lg');
+            
+            showGrammarDebug(`已將『${getVerbText(selectedGrammarItem.key)}』填入空格。檢查答案中...`);
+            selectedGrammarItem = null;
+            checkGrammarCompletion();
+
+        } else if (dropZone.querySelector('.drag-item')) {
+            const itemToReturn = dropZone.querySelector('.drag-item');
+            if (itemToReturn) {
+                 itemToReturn.classList.remove('opacity-50', 'correct-animation', 'incorrect-animation', 'selected');
+                 grammarOptionsEl.appendChild(itemToReturn);
+                 
+                 dropZone.innerHTML = `【${dropZone.dataset.targetType}】`;
+                 dropZone.classList.add('border-dashed');
+                 dropZone.classList.remove('border-solid', 'border-indigo-600', 'shadow-lg');
+                 showGrammarDebug('已從空格中移除項目。');
+            }
+        } else {
+            showGrammarDebug('請先點擊下方選項。');
+        }
+    }
 
     function checkGrammarCompletion() {
         const dropZones = structureEl.querySelectorAll('.drop-zone');
@@ -855,9 +834,8 @@
         });
 
         if (filledCount === dropZones.length) {
-            const currentChallenge = grammarData[currentGrammarIndex];
+            const currentChallenge = (currentMode === 'mixed') ? mixedChallengeList[mixedIndex].data : allGrammarData[currentGrammarIndex];
             
-            // 由於欄位命名可能不同 (動詞/介系詞片語/方向)，我們使用目標鍵值進行精確檢查
             const targetKeys = {
                 '動詞': currentChallenge.targetVerb,
                 '介系詞': currentChallenge.targetVerb,
@@ -880,27 +858,278 @@
                 }
             });
 
-
-            // 顯示結果
-            const resultType = isCorrect ? 'success' : 'error';
-            const resultText = isCorrect ? `✅ 太棒了！正確答案是：${currentChallenge.fullSentence}` : `❌ 答錯了，請再想想！提示：${currentChallenge.rule}`;
-            showGrammarResult(resultText, resultType);
-            
-            const items = structureEl.querySelectorAll('.drag-item');
-            if (isCorrect) {
-                items.forEach(item => item.classList.add('correct-animation'));
+            // 處理混合模式計分
+            if (currentMode === 'mixed') {
+                processMixedResult(isCorrect, 'grammar');
             } else {
-                items.forEach(item => item.classList.add('incorrect-animation'));
-                setTimeout(() => {
-                    fullSentenceDisplay.textContent = `完整正確句子：${currentChallenge.fullSentence}`;
-                    grammarHintArea.classList.remove('hidden');
-                }, 1000);
+                 // 顯示結果
+                const resultType = isCorrect ? 'success' : 'error';
+                const resultText = isCorrect ? `✅ 太棒了！正確答案是：${currentChallenge.fullSentence}` : `❌ 答錯了，請再想想！提示：${currentChallenge.rule}`;
+                showGrammarResult(resultText, resultType);
+                
+                const items = structureEl.querySelectorAll('.drag-item');
+                if (isCorrect) {
+                    items.forEach(item => item.classList.add('correct-animation'));
+                } else {
+                    items.forEach(item => item.classList.add('incorrect-animation'));
+                    setTimeout(() => {
+                        fullSentenceDisplay.textContent = `完整正確句子：${currentChallenge.fullSentence}`;
+                        grammarHintArea.classList.remove('hidden');
+                    }, 1000);
+                }
             }
         }
     }
 
     function showGrammarResult(text, type) {
-        // 這是顯示最終結果的函數
+        grammarMessageText.textContent = text;
+        grammarMessageBox.classList.remove('hidden');
+        if (type === 'success') {
+            grammarMessageBox.className = 'mt-8 p-4 text-center rounded-xl transition duration-500 bg-green-100 text-green-700 shadow-xl';
+        } else {
+            grammarMessageBox.className = 'mt-8 p-4 text-center rounded-xl transition duration-500 bg-red-100 text-red-700 shadow-xl';
+        }
+    }
+    
+    function nextGrammarChallenge() {
+        currentGrammarIndex++;
+        startGrammarChallenge();
+    }
+    
+    // =================================================================
+    // 6. 綜合測驗邏輯 (Mixed Challenge Logic)
+    // =================================================================
+    
+    function startMixedChallenge() {
+        // 1. 合併題目並隨機排列
+        const vocabChallenges = allVocabulary.map(v => ({ type: 'spelling', data: v }));
+        const grammarChallenges = allGrammarData.map(g => ({ type: 'grammar', data: g }));
+        let fullMixedList = [...vocabChallenges, ...grammarChallenges].sort(() => 0.5 - Math.random());
+        
+        // ** 關鍵修正點 1: 限制題目數量為 15 **
+        const targetCount = 15;
+        mixedChallengeList = fullMixedList.slice(0, targetCount);
+        
+        mixedIndex = 0;
+        mixedScore = 0;
+        totalMixedChallenges = mixedChallengeList.length; 
+        
+        // 2. 切換 UI 模式到第一個題目
+        document.getElementById('mode-mixed').classList.add('hidden');
+        
+        runNextMixedChallenge();
+    }
+    
+    function runNextMixedChallenge() {
+         if (mixedIndex >= totalMixedChallenges) {
+            endMixedGame();
+            return;
+        }
+        
+        const challenge = mixedChallengeList[mixedIndex];
+        
+        // 隱藏/顯示對應的 UI 區塊
+        const isSpelling = challenge.type === 'spelling';
+        document.getElementById('mode-spelling').classList.toggle('hidden', !isSpelling);
+        document.getElementById('mode-grammar').classList.toggle('hidden', isSpelling);
+        
+        // 重置進度顯示
+        document.getElementById('progress-display').textContent = `${mixedIndex + 1}/${totalMixedChallenges}`;
+
+        if (isSpelling) {
+            // 單字測驗
+            currentQuiz = challenge.data;
+            startSpellingQuizUI();
+        } else {
+            // 文法填空
+            startGrammarChallengeUI(challenge.data);
+        }
+    }
+    
+    // 獨立的 UI 啟動函數 (Spelling)
+    function startSpellingQuizUI() {
+        currentQuiz = mixedChallengeList[mixedIndex].data; // 確保 currentQuiz 指向正確數據
+
+        // 單字邏輯重設
+        inputEl.value = '';
+        inputEl.focus();
+        nextBtn.classList.add('hidden');
+        checkBtn.classList.remove('hidden');
+        messageBox.classList.add('hidden');
+        inputEl.classList.remove('border-green-500', 'border-red-500');
+        inputEl.disabled = false;
+        checkBtn.disabled = false;
+        
+        meaningEl.textContent = currentQuiz.meaning;
+        hintEl.innerHTML = currentQuiz.hint.replace(/\n/g, '<br>');
+        hintTitleEl.textContent = "點擊卡片顯示解釋與提示";
+        hintEl.classList.add('hidden'); 
+        spellingResultEl.classList.add('hidden');
+    }
+    
+    // 獨立的 UI 啟動函數 (Grammar)
+    function startGrammarChallengeUI(challengeData) {
+        // 語法邏輯重設
+        grammarQuestionEl.textContent = challengeData.question;
+        grammarMessageBox.classList.add('hidden');
+        structureEl.innerHTML = '';
+        grammarOptionsEl.innerHTML = '';
+        grammarHintArea.classList.add('hidden');
+        selectedGrammarItem = null;
+        
+        // 確保題目數據正確傳遞
+        const currentChallenge = challengeData;
+
+        // 渲染文法題目 (使用 challengeData)
+        const requiredOptions = [
+            { key: currentChallenge.targetVehicle, text: getVerbText(currentChallenge.targetVehicle), icon: getVerbIcon(currentChallenge.targetVehicle), type: getVerbType(currentChallenge.targetVehicle) },
+            { key: currentChallenge.targetVerb, text: getVerbText(currentChallenge.targetVerb), icon: getVerbIcon(currentChallenge.targetVerb), type: getVerbType(currentChallenge.targetVerb) }
+        ];
+
+        const allOptions = [...requiredOptions, ...extraOptions]
+            .filter((opt, i, self) => i === self.findIndex((t) => t.key === opt.key))
+            .sort(() => 0.5 - Math.random());
+
+        currentChallenge.structure.forEach(part => {
+            const span = document.createElement('span');
+            span.className = 'py-2';
+            if (part.includes('【')) {
+                span.className = 'drop-zone bg-white rounded-xl shadow-inner flex items-center justify-center p-2 min-w-[6rem] min-h-[3.5rem] border-2 border-dashed border-indigo-400 hover:border-indigo-600 transition-all text-xl md:text-2xl';
+                span.dataset.targetType = part.replace(/[【】]/g, ''); 
+                span.addEventListener('click', handleDropZoneClick); 
+                span.addEventListener('dragover', allowDrop);
+                span.addEventListener('dragleave', handleDragLeave);
+                span.addEventListener('drop', handleDrop);
+                span.textContent = part;
+            } else {
+                span.className = 'text-2xl md:text-3xl font-bold text-indigo-700 py-2';
+                span.textContent = part;
+            }
+            structureEl.appendChild(span);
+        });
+
+        allOptions.forEach(option => {
+            const item = createDragItem(option);
+            grammarOptionsEl.appendChild(item);
+        });
+    }
+
+    function processMixedResult(isCorrect, type) {
+        if (isCorrect) {
+            mixedScore++;
+        }
+        
+        const resultType = isCorrect ? 'success' : 'error';
+        const resultText = isCorrect ? `✅ 正確！總分: ${mixedScore}/${mixedIndex + 1}` : `❌ 錯誤。總分: ${mixedScore}/${mixedIndex + 1}`;
+        
+        // 顯示結果
+        if (type === 'spelling') {
+            messageText.textContent = resultText;
+            messageBox.classList.remove('hidden');
+            nextBtn.classList.remove('hidden');
+        } else {
+            grammarMessageText.textContent = resultText;
+            grammarMessageBox.classList.remove('hidden');
+        }
+        
+        // 綁定下一題事件
+        if (type === 'spelling') {
+            nextBtn.onclick = () => {
+                mixedIndex++;
+                runNextMixedChallenge();
+            };
+        } else {
+            const nextGrammarBtn = document.querySelector('#grammar-message-box button');
+            nextGrammarBtn.onclick = () => {
+                mixedIndex++;
+                runNextMixedChallenge();
+            };
+        }
+    }
+    
+    function endMixedGame() {
+        const finalMessage = `🎉 綜合挑戰完成！您的最終得分是 ${mixedScore} / ${totalMixedChallenges}！`;
+        
+        // 切回主選單 UI
+        switchMode('menu');
+        
+        // 顯示最終訊息
+        const menuContainer = document.querySelector('#mode-menu .text-center');
+        menuContainer.innerHTML = `
+            <h2 class="text-4xl font-extrabold text-blue-800 mb-4">挑戰圓滿結束！</h2>
+            <p class="text-2xl font-bold text-gray-700 mb-8">${finalMessage}</p>
+            <button onclick="switchMode('menu')" class="p-4 bg-purple-600 text-white rounded-xl shadow-lg hover:shadow-xl">
+                返回選單
+            </button>
+        `;
+    }
+    
+    // (省略其他文法邏輯函數 checkGrammarCompletion, showGrammarResult, nextGrammarChallenge 等，它們與上版相同)
+    
+    function checkGrammarCompletion() {
+        const dropZones = structureEl.querySelectorAll('.drop-zone');
+        let filledCount = 0;
+        let isCorrect = true;
+        let droppedKeys = {}; 
+
+        dropZones.forEach(zone => {
+            const item = zone.querySelector('.drag-item');
+            if (item) {
+                filledCount++;
+                const expectedType = zone.dataset.targetType;
+                droppedKeys[expectedType] = item.dataset.key;
+            }
+        });
+
+        if (filledCount === dropZones.length) {
+            const currentChallenge = (currentMode === 'mixed') ? mixedChallengeList[mixedIndex].data : allGrammarData[currentGrammarIndex];
+            
+            const targetKeys = {
+                '動詞': currentChallenge.targetVerb,
+                '介系詞': currentChallenge.targetVerb,
+                '介系詞片語': currentChallenge.targetVerb,
+                '不定詞': currentChallenge.targetVehicle,
+                '載具': currentChallenge.targetVehicle,
+                '方式': currentChallenge.targetVehicle,
+                '方向': currentChallenge.targetVehicle,
+                '地點': currentChallenge.targetVehicle,
+                '片語': currentChallenge.targetVehicle
+            };
+
+            dropZones.forEach(zone => {
+                const type = zone.dataset.targetType;
+                const droppedKey = droppedKeys[type];
+                const expectedKey = targetKeys[type];
+
+                if (expectedKey && droppedKey !== expectedKey) {
+                    isCorrect = false;
+                }
+            });
+
+            // 處理混合模式計分
+            if (currentMode === 'mixed') {
+                processMixedResult(isCorrect, 'grammar');
+            } else {
+                 // 顯示結果
+                const resultType = isCorrect ? 'success' : 'error';
+                const resultText = isCorrect ? `✅ 太棒了！正確答案是：${currentChallenge.fullSentence}` : `❌ 答錯了，請再想想！提示：${currentChallenge.rule}`;
+                showGrammarResult(resultText, resultType);
+                
+                const items = structureEl.querySelectorAll('.drag-item');
+                if (isCorrect) {
+                    items.forEach(item => item.classList.add('correct-animation'));
+                } else {
+                    items.forEach(item => item.classList.add('incorrect-animation'));
+                    setTimeout(() => {
+                        fullSentenceDisplay.textContent = `完整正確句子：${currentChallenge.fullSentence}`;
+                        grammarHintArea.classList.remove('hidden');
+                    }, 1000);
+                }
+            }
+        }
+    }
+
+    function showGrammarResult(text, type) {
         grammarMessageText.textContent = text;
         grammarMessageBox.classList.remove('hidden');
         if (type === 'success') {
