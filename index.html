@@ -175,17 +175,6 @@
         </div>
     </section>
     
-    <!-- 4. 綜合測驗模式 (Mixed Quiz) -->
-     <section id="mode-mixed" class="mode-view hidden p-4">
-        <div class="text-center p-10 bg-yellow-50 rounded-2xl shadow-inner">
-            <h2 class="text-3xl font-bold text-yellow-800 mb-4">🔥 綜合挑戰模式 🔥</h2>
-            <p class="text-xl text-gray-700 mb-8">此模式將隨機抽取所有單字拼寫和文法填空題目進行測驗。</p>
-            <button onclick="startMixedChallenge()" class="p-4 bg-yellow-600 text-white rounded-xl shadow-lg hover:shadow-xl transition transform hover:scale-105 font-bold text-xl">
-                 開始混合測驗
-            </button>
-        </div>
-    </section>
-
 </div>
 
 <script>
@@ -317,7 +306,7 @@
 
     // 模式切換狀態
     let currentMode = 'menu';
-    const modes = ['menu', 'spelling', 'grammar', 'mixed']; // 新增 mixed 模式
+    const modes = ['menu', 'spelling', 'grammar']; // 移除 mixed 模式
     
     // 單字測驗狀態
     let currentWordIndex = 0;
@@ -328,14 +317,6 @@
     let currentGrammarIndex = 0;
     let dragData = {}; 
     let selectedGrammarItem = null; // 用於點擊替換模式
-
-    // 混合模式專用
-    const MIXED_QUIZ_COUNT = 15; // 限制題目數量為 15 題
-    let mixedChallengeList = [];
-    let mixedIndex = 0;
-    let mixedScore = 0;
-    let totalMixedChallenges = 0;
-    
 
     // 元素參考 (Spelling)
     const flashcardStaticEl = document.getElementById('flashcard-static'); 
@@ -384,10 +365,10 @@
         document.getElementById('mode-menu').classList.add('hidden');
         document.getElementById('mode-spelling').classList.add('hidden');
         document.getElementById('mode-grammar').classList.add('hidden');
-        document.getElementById('mode-mixed').classList.add('hidden');
-
+        // 移除綜合測驗 UI 元素
+        
         // 重置按鈕樣式
-        modes.forEach(m => {
+        ['menu', 'spelling', 'grammar'].forEach(m => {
             const btn = document.getElementById(`btn-${m}`);
             if (btn) btn.classList.remove('bg-purple-700', 'bg-indigo-700', 'bg-yellow-700', 'text-white', 'bg-gray-300', 'text-gray-700');
         });
@@ -402,8 +383,6 @@
                 currentBtn.classList.add('bg-purple-700', 'text-white');
             } else if (mode === 'grammar') {
                 currentBtn.classList.add('bg-indigo-700', 'text-white');
-            } else if (mode === 'mixed') {
-                 currentBtn.classList.add('bg-yellow-700', 'text-white');
             } else if (mode === 'menu') {
                  currentBtn.classList.add('bg-gray-300', 'text-gray-700');
             }
@@ -421,8 +400,6 @@
             currentGrammarIndex = 0;
             selectedGrammarItem = null;
             startGrammarChallenge();
-        } else if (mode === 'mixed') {
-             // 混合模式在點擊按鈕時才會啟動
         }
     }
 
@@ -434,8 +411,6 @@
     function updateProgress(total) {
         if (currentMode === 'spelling') {
             progressDisplay.textContent = `${currentWordIndex}/${allVocabulary.length}`;
-        } else if (currentMode === 'mixed') {
-            progressDisplay.textContent = `${mixedIndex + 1}/${total}`;
         }
     }
 
@@ -508,18 +483,14 @@
             handleIncorrectSpelling(correctWord);
         }
         
-        if (currentMode === 'mixed') {
-            processMixedResult(isCorrect, 'spelling');
-        } else {
-            nextBtn.classList.remove('hidden');
-        }
+        nextBtn.classList.remove('hidden');
     }
 
     function handleCorrectSpelling() {
-        if (currentMode === 'spelling') spellingScore++;
+        spellingScore++;
         
         messageBox.className = 'mt-6 p-4 text-center rounded-xl transition duration-500 bg-green-100 text-green-700 shadow-md';
-        messageText.textContent = `✅ 拼字完全正確！太棒了！ (Score: ${currentMode === 'spelling' ? spellingScore : mixedScore + 1})`;
+        messageText.textContent = `✅ 拼字完全正確！太棒了！ (Score: ${spellingScore})`;
         inputEl.classList.add('border-green-500');
         
         // 修正: 顯示正確答案
@@ -836,7 +807,7 @@
         });
 
         if (filledCount === dropZones.length) {
-            const currentChallenge = (currentMode === 'mixed') ? mixedChallengeList[mixedIndex].data : allGrammarData[currentGrammarIndex];
+            const currentChallenge = allGrammarData[currentGrammarIndex];
             
             const targetKeys = {
                 '動詞': currentChallenge.targetVerb,
@@ -860,277 +831,20 @@
                 }
             });
 
-            // 處理混合模式計分
-            if (currentMode === 'mixed') {
-                processMixedResult(isCorrect, 'grammar');
-            } else {
-                 // 顯示結果
-                const resultType = isCorrect ? 'success' : 'error';
-                const resultText = isCorrect ? `✅ 太棒了！正確答案是：${currentChallenge.fullSentence}` : `❌ 答錯了，請再想想！提示：${currentChallenge.rule}`;
-                showGrammarResult(resultText, resultType);
-                
-                const items = structureEl.querySelectorAll('.drag-item');
-                if (isCorrect) {
-                    items.forEach(item => item.classList.add('correct-animation'));
-                } else {
-                    items.forEach(item => item.classList.add('incorrect-animation'));
-                    setTimeout(() => {
-                        fullSentenceDisplay.textContent = `完整正確句子：${currentChallenge.fullSentence}`;
-                        grammarHintArea.classList.remove('hidden');
-                    }, 1000);
-                }
-            }
-        }
-    }
-
-    function showGrammarResult(text, type) {
-        grammarMessageText.textContent = text;
-        grammarMessageBox.classList.remove('hidden');
-        if (type === 'success') {
-            grammarMessageBox.className = 'mt-8 p-4 text-center rounded-xl transition duration-500 bg-green-100 text-green-700 shadow-xl';
-        } else {
-            grammarMessageBox.className = 'mt-8 p-4 text-center rounded-xl transition duration-500 bg-red-100 text-red-700 shadow-xl';
-        }
-    }
-    
-    function nextGrammarChallenge() {
-        currentGrammarIndex++;
-        startGrammarChallenge();
-    }
-    
-    // =================================================================
-    // 6. 綜合測驗邏輯 (Mixed Challenge Logic)
-    // =================================================================
-    
-    function startMixedChallenge() {
-        // 1. 合併題目並隨機排列
-        const vocabChallenges = allVocabulary.map(v => ({ type: 'spelling', data: v }));
-        const grammarChallenges = allGrammarData.map(g => ({ type: 'grammar', data: g }));
-        let fullMixedList = [...vocabChallenges, ...grammarChallenges].sort(() => 0.5 - Math.random());
-        
-        // ** 關鍵修正點 1: 限制題目數量為 15 **
-        const targetCount = 15;
-        mixedChallengeList = fullMixedList.slice(0, targetCount);
-        
-        mixedIndex = 0;
-        mixedScore = 0;
-        totalMixedChallenges = mixedChallengeList.length; 
-        
-        // 2. 切換 UI 模式到第一個題目
-        document.getElementById('mode-mixed').classList.add('hidden');
-        
-        // 重置進度顯示
-        document.getElementById('progress-display').textContent = `1/${totalMixedChallenges}`;
-
-        runNextMixedChallenge();
-    }
-    
-    function runNextMixedChallenge() {
-         if (mixedIndex >= totalMixedChallenges) {
-            endMixedGame();
-            return;
-        }
-        
-        const challenge = mixedChallengeList[mixedIndex];
-        
-        // 隱藏/顯示對應的 UI 區塊
-        const isSpelling = challenge.type === 'spelling';
-        document.getElementById('mode-spelling').classList.toggle('hidden', !isSpelling);
-        document.getElementById('mode-grammar').classList.toggle('hidden', isSpelling);
-        
-        // 重置進度顯示
-        document.getElementById('progress-display').textContent = `${mixedIndex + 1}/${totalMixedChallenges}`;
-
-        if (isSpelling) {
-            // 單字測驗
-            currentQuiz = challenge.data;
-            startSpellingQuizUI();
-        } else {
-            // 文法填空
-            startGrammarChallengeUI(challenge.data);
-        }
-    }
-    
-    // 獨立的 UI 啟動函數 (Spelling)
-    function startSpellingQuizUI() {
-        currentQuiz = mixedChallengeList[mixedIndex].data; // 確保 currentQuiz 指向正確數據
-
-        // 單字邏輯重設
-        inputEl.value = '';
-        inputEl.focus();
-        nextBtn.classList.add('hidden');
-        checkBtn.classList.remove('hidden');
-        messageBox.classList.add('hidden');
-        inputEl.classList.remove('border-green-500', 'border-red-500');
-        inputEl.disabled = false;
-        checkBtn.disabled = false;
-        
-        meaningEl.textContent = currentQuiz.meaning;
-        hintEl.innerHTML = currentQuiz.hint.replace(/\n/g, '<br>');
-        hintTitleEl.textContent = "點擊卡片顯示解釋與提示";
-        hintEl.classList.add('hidden'); 
-        spellingResultEl.classList.add('hidden');
-    }
-    
-    // 獨立的 UI 啟動函數 (Grammar)
-    function startGrammarChallengeUI(challengeData) {
-        // 語法邏輯重設
-        grammarQuestionEl.textContent = challengeData.question;
-        
-        // 確保結構容器是空的
-        structureEl.innerHTML = '';
-        grammarOptionsEl.innerHTML = '';
-        
-        grammarMessageBox.classList.add('hidden');
-        grammarHintArea.classList.add('hidden');
-        selectedGrammarItem = null;
-        
-        const currentChallenge = challengeData;
-
-        // 渲染文法題目 (使用 challengeData)
-        const requiredOptions = [
-            { key: currentChallenge.targetVehicle, text: getVerbText(currentChallenge.targetVehicle), icon: getVerbIcon(currentChallenge.targetVehicle), type: getVerbType(currentChallenge.targetVehicle) },
-            { key: currentChallenge.targetVerb, text: getVerbText(currentChallenge.targetVerb), icon: getVerbIcon(currentChallenge.targetVerb), type: getVerbType(currentChallenge.targetVerb) }
-        ];
-
-        const allOptions = [...requiredOptions, ...extraOptions]
-            .filter((opt, i, self) => i === self.findIndex((t) => t.key === opt.key))
-            .sort(() => 0.5 - Math.random());
-
-        currentChallenge.structure.forEach(part => {
-            const span = document.createElement('span');
-            span.className = 'py-2';
-            if (part.includes('【')) {
-                span.className = 'drop-zone bg-white rounded-xl shadow-inner flex items-center justify-center p-2 min-w-[6rem] min-h-[3.5rem] border-2 border-dashed border-indigo-400 hover:border-indigo-600 transition-all text-xl md:text-2xl';
-                span.dataset.targetType = part.replace(/[【】]/g, ''); 
-                span.addEventListener('click', handleDropZoneClick); 
-                span.addEventListener('dragover', allowDrop);
-                span.addEventListener('dragleave', handleDragLeave);
-                span.addEventListener('drop', handleDrop);
-                span.textContent = part;
-            } else {
-                span.className = 'text-2xl md:text-3xl font-bold text-indigo-700 py-2';
-                span.textContent = part;
-            }
-            structureEl.appendChild(span);
-        });
-
-        // *** 關鍵修復點：渲染選項 (同步調用) ***
-        allOptions.forEach(option => {
-            const item = createDragItem(option);
-            grammarOptionsEl.appendChild(item);
-        });
-    }
-
-    function processMixedResult(isCorrect, type) {
-        if (isCorrect) {
-            mixedScore++;
-        }
-        
-        const resultType = isCorrect ? 'success' : 'error';
-        const resultText = isCorrect ? `✅ 正確！總分: ${mixedScore}/${mixedIndex + 1}` : `❌ 錯誤。總分: ${mixedScore}/${mixedIndex + 1}`;
-        
-        // 顯示結果
-        if (type === 'spelling') {
-            messageText.textContent = resultText;
-            messageBox.classList.remove('hidden');
-            nextBtn.classList.remove('hidden');
-        } else {
-            grammarMessageText.textContent = resultText;
-            grammarMessageBox.classList.remove('hidden');
-        }
-        
-        // 綁定下一題事件
-        if (type === 'spelling') {
-            nextBtn.onclick = () => {
-                mixedIndex++;
-                runNextMixedChallenge();
-            };
-        } else {
-            const nextGrammarBtn = document.querySelector('#grammar-message-box button');
-            nextGrammarBtn.onclick = () => {
-                mixedIndex++;
-                runNextMixedChallenge();
-            };
-        }
-    }
-    
-    function endMixedGame() {
-        const finalMessage = `🎉 綜合挑戰完成！您的最終得分是 ${mixedScore} / ${totalMixedChallenges}！`;
-        
-        // 切回主選單 UI
-        switchMode('menu');
-        
-        // 顯示最終訊息
-        const menuContainer = document.querySelector('#mode-menu .text-center');
-        menuContainer.innerHTML = `
-            <h2 class="text-4xl font-extrabold text-blue-800 mb-4">挑戰圓滿結束！</h2>
-            <p class="text-2xl font-bold text-gray-700 mb-8">${finalMessage}</p>
-            <button onclick="switchMode('menu')" class="p-4 bg-purple-600 text-white rounded-xl shadow-lg hover:shadow-xl">
-                返回選單
-            </button>
-        `;
-    }
-    
-    function checkGrammarCompletion() {
-        const dropZones = structureEl.querySelectorAll('.drop-zone');
-        let filledCount = 0;
-        let isCorrect = true;
-        let droppedKeys = {}; 
-
-        dropZones.forEach(zone => {
-            const item = zone.querySelector('.drag-item');
-            if (item) {
-                filledCount++;
-                const expectedType = zone.dataset.targetType;
-                droppedKeys[expectedType] = item.dataset.key;
-            }
-        });
-
-        if (filledCount === dropZones.length) {
-            const currentChallenge = (currentMode === 'mixed') ? mixedChallengeList[mixedIndex].data : allGrammarData[currentGrammarIndex];
+            // 顯示結果
+            const resultType = isCorrect ? 'success' : 'error';
+            const resultText = isCorrect ? `✅ 太棒了！正確答案是：${currentChallenge.fullSentence}` : `❌ 答錯了，請再想想！提示：${currentChallenge.rule}`;
+            showGrammarResult(resultText, resultType);
             
-            const targetKeys = {
-                '動詞': currentChallenge.targetVerb,
-                '介系詞': currentChallenge.targetVerb,
-                '介系詞片語': currentChallenge.targetVerb,
-                '不定詞': currentChallenge.targetVehicle,
-                '載具': currentChallenge.targetVehicle,
-                '方式': currentChallenge.targetVehicle,
-                '方向': currentChallenge.targetVehicle,
-                '地點': currentChallenge.targetVehicle,
-                '片語': currentChallenge.targetVehicle
-            };
-
-            dropZones.forEach(zone => {
-                const type = zone.dataset.targetType;
-                const droppedKey = droppedKeys[type];
-                const expectedKey = targetKeys[type];
-
-                if (expectedKey && droppedKey !== expectedKey) {
-                    isCorrect = false;
-                }
-            });
-
-            // 處理混合模式計分
-            if (currentMode === 'mixed') {
-                processMixedResult(isCorrect, 'grammar');
+            const items = structureEl.querySelectorAll('.drag-item');
+            if (isCorrect) {
+                items.forEach(item => item.classList.add('correct-animation'));
             } else {
-                 // 顯示結果
-                const resultType = isCorrect ? 'success' : 'error';
-                const resultText = isCorrect ? `✅ 太棒了！正確答案是：${currentChallenge.fullSentence}` : `❌ 答錯了，請再想想！提示：${currentChallenge.rule}`;
-                showGrammarResult(resultText, resultType);
-                
-                const items = structureEl.querySelectorAll('.drag-item');
-                if (isCorrect) {
-                    items.forEach(item => item.classList.add('correct-animation'));
-                } else {
-                    items.forEach(item => item.classList.add('incorrect-animation'));
-                    setTimeout(() => {
-                        fullSentenceDisplay.textContent = `完整正確句子：${currentChallenge.fullSentence}`;
-                        grammarHintArea.classList.remove('hidden');
-                    }, 1000);
-                }
+                items.forEach(item => item.classList.add('incorrect-animation'));
+                setTimeout(() => {
+                    fullSentenceDisplay.textContent = `完整正確句子：${currentChallenge.fullSentence}`;
+                    grammarHintArea.classList.remove('hidden');
+                }, 1000);
             }
         }
     }
@@ -1149,6 +863,7 @@
         currentGrammarIndex++;
         startGrammarChallenge();
     }
+    
 </script>
 </body>
 </html>
