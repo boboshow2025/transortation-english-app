@@ -74,9 +74,6 @@
             <button onclick="switchMode('grammar')" id="btn-grammar" class="px-4 py-2 bg-indigo-600 text-white font-semibold rounded-full hover:bg-indigo-700 transition">
                 📝 文法填空
             </button>
-            <button onclick="switchMode('mixed')" id="btn-mixed" class="px-4 py-2 bg-yellow-600 text-white font-semibold rounded-full hover:bg-yellow-700 transition">
-                🔥 綜合測驗
-            </button>
         </div>
     </header>
 
@@ -85,7 +82,7 @@
         <div class="text-center p-10 bg-blue-50 rounded-2xl shadow-inner">
             <h2 class="text-3xl font-bold text-blue-800 mb-4">歡迎來到 Unit 5 挑戰！</h2>
             <p class="text-xl text-gray-700 mb-8">請選擇你想強化的學習模式：</p>
-            <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <button onclick="switchMode('spelling')" class="p-6 bg-purple-100 text-purple-800 rounded-xl shadow-lg hover:shadow-xl transition transform hover:scale-105">
                     <span class="text-4xl">✍️</span>
                     <p class="text-2xl font-bold mt-2">單字拼寫機</p>
@@ -95,11 +92,6 @@
                     <span class="text-4xl">🚌</span>
                     <p class="text-2xl font-bold mt-2">文法片語填空</p>
                     <p class="text-sm mt-1">應用訓練：包含交通、導航、動作片語</p>
-                </button>
-                 <button onclick="switchMode('mixed')" class="p-6 bg-yellow-100 text-yellow-800 rounded-xl shadow-lg hover:shadow-xl transition transform hover:scale-105">
-                    <span class="text-4xl">🔥</span>
-                    <p class="text-2xl font-bold mt-2">綜合挑戰</p>
-                    <p class="text-sm mt-1">混合模式：單字與文法隨機交錯測驗</p>
                 </button>
             </div>
         </div>
@@ -307,15 +299,15 @@
     
     // E. 干擾項 (必須放在所有數據定義之後)
     const extraOptions = [
-        { key: "drive", text: "Drive (開車)", icon: "🚗", type: 'verb' },
-        { key: "with", text: "With (和)", icon: "🤝", type: 'verb' },
-        { key: "a", text: "A (一個)", icon: "1️⃣", type: 'article' },
-        { key: "on", text: "On (在上)", icon: "👆", type: 'verb' }, 
-        { key: "go", text: "Go (去)", icon: "🏃", type: 'verb' },
-        { key: "scooter", text: "Scooter (機車)", icon: "🛵", type: 'vehicle' },
-        { key: "train", text: "Train (火車)", icon: "🚆", type: 'vehicle' },
-        { key: "past", text: "Past (經過)", icon: "➡️", type: 'preposition' },
-        { key: "walk", text: "Walk (走路)", icon: "🚶", type: 'verb' }
+        { key: "drive", text: "Drive", icon: "🚗", type: 'verb' },
+        { key: "with", text: "With", icon: "🤝", type: 'verb' },
+        { key: "a", text: "A", icon: "1️⃣", type: 'article' },
+        { key: "on", text: "On", icon: "👆", type: 'verb' }, 
+        { key: "go", text: "Go", icon: "🏃", type: 'verb' },
+        { key: "scooter", text: "Scooter", icon: "🛵", type: 'vehicle' },
+        { key: "train", text: "Train", icon: "🚆", type: 'vehicle' },
+        { key: "past", text: "Past", icon: "➡️", type: 'preposition' },
+        { key: "walk", text: "Walk", icon: "🚶", type: 'verb' }
     ];
 
     
@@ -596,13 +588,13 @@
 
     function getVerbText(key) {
         switch (key) {
-            case 'take': return 'Take (搭乘)'; case 'ride': return 'Ride (騎乘)'; case 'by': return 'By (藉由)';
-            case 'on': return 'On (在...上)'; case 'get': return 'Get (得到)'; case 'off': return 'Off (離開)';
-            case 'foot': return 'Foot (腳)'; case 'going': return 'Going (正在走)'; case 'straight': return 'Straight (直地)';
-            case 'across': return 'Across (橫越)'; case 'from': return 'From (對面)'; case 'asked': return 'Asked (過去式)';
-            case 'to': return 'To (不定詞)'; case 'for': return 'For (為了)'; case 'do': return 'Do (助動詞)'; case 'plane': return 'Plane (飛機)';
-            case 'help': return 'Help (協助)'; case 'at': return 'At (在)'; case 'of': return 'Of (的)'; case 'back': return 'Back (回頭)';
-            case 'take': return 'Take (休息)'; case 'working': return 'Working (工作)'; case 'How': return 'How (如何)';
+            case 'take': return 'Take'; case 'ride': return 'Ride'; case 'by': return 'By';
+            case 'on': return 'On'; case 'get': return 'Get'; case 'off': return 'Off';
+            case 'foot': return 'Foot'; case 'going': return 'Going'; case 'straight': return 'Straight';
+            case 'across': return 'Across'; case 'from': return 'From'; case 'asked': return 'Asked';
+            case 'to': return 'To'; case 'for': return 'For'; case 'do': return 'Do'; case 'plane': return 'Plane';
+            case 'help': return 'Help'; case 'at': return 'At'; case 'of': return 'Of'; case 'back': return 'Back';
+            case 'take': return 'Take'; case 'working': return 'Working'; case 'How': return 'How';
             default: return key.toUpperCase();
         }
     }
@@ -684,7 +676,7 @@
 
 
     function startGrammarChallenge() {
-        const currentChallenge = (currentMode === 'mixed') ? mixedChallengeList[mixedIndex].data : allGrammarData[currentGrammarIndex];
+        const currentChallenge = allGrammarData[currentGrammarIndex];
 
         // 啟動渲染
         renderGrammarChallenge(currentChallenge);
